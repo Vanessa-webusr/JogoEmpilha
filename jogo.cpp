@@ -3,11 +3,12 @@
 #include <allegro5/allegro_image.h>
 #include <cstdlib>
 #include <ctime>
+#include <cstddef>
 #include "objetos.h"
 #include "Pilha.h"
 #include "PilhaInter.h"
 
-enum TECLAS { DIREITA, ESQUERDA, ESPAÇO };
+enum TECLAS { DIREITA, ESQUERDA, ESPACO };
 
 // ---------- VARIÁVEIS GLOBAIS ---------
 const int width_t = 1860;
@@ -15,15 +16,18 @@ const int height_t = 976;
 const int FPS = 60;
 const int NUM_SACAS = 2;
 const int NUM_BIGORNAS = 1;
+const int NUM_VASOS = 1;
 
 // ---------- GAME STATES --------
 const int STATE_MENU = 0;
 const int STATE_GAME = 1;
 const int STATE_OVER = 2;
+const int STATE_WIN = 3;
 
 float s_x = 17, s_y = 27, s_w = 234, s_h = 279;
 
 bool morte = false;
+bool vitoria = false;
 
 ALLEGRO_DISPLAY* display = NULL;
 ALLEGRO_BITMAP* background = NULL;
@@ -33,6 +37,8 @@ ALLEGRO_BITMAP* bigorna = NULL;
 ALLEGRO_BITMAP* def = NULL;
 ALLEGRO_BITMAP* fim_de_jogo = NULL;
 ALLEGRO_BITMAP* game_menu = NULL;
+ALLEGRO_BITMAP* ganhou_jogo = NULL;
+ALLEGRO_BITMAP* vaso = NULL;
 
 
 #define BACKGROUND_FILE "fundo_neve_caminhao.png"
@@ -41,7 +47,8 @@ ALLEGRO_BITMAP* game_menu = NULL;
 #define BIGORNA_FILE "anvil_v1.png"
 #define FIM_DE_JOGO_FILE "game_over_v5.png"
 #define GAME_MENU_FILE "game_menu_v3.png"
-
+#define GANHA_JOGO_FILE "vencedor.png"
+#define VASO_FILE "vaso.png"
 
 
 // --------- PROTÓTIPOS --------------------
@@ -62,6 +69,12 @@ void LiberaBigorna(Bigorna bigornas[], int tamanho);
 void AtualizarBigorna(Bigorna bigornas[], int tamanho);
 void DesenhaBigorna(Bigorna bigornas[], int tamanho);
 void ColideBigornaPinguim(Bigorna bigornas[], int s_tamanho, Pinguim p1, Pilha* pilha);
+
+void InitVaso(Vaso vasos[], int tamanho);
+void LiberaVaso(Vaso vasos[], int tamanho);
+void AtualizarVaso(Vaso vasos[], int tamanho);
+void DesenhaVaso(Vaso vasos[], int tamanho);
+void ColideVasoPinguim(Vaso vasos[], int s_tamanho, Pinguim p1, Pilha* pilha);
 
 
 void Atualizarpilha(Pilha* pilha);
@@ -88,6 +101,7 @@ int main() {
 	Pinguim p1;
 	Saca sacas[NUM_SACAS];
 	Bigorna bigornas[NUM_BIGORNAS];
+	Vaso vasos[NUM_VASOS];
 	PilhaInter* pilhaInter = new PilhaInter(6);
 	Pilha* pilhaDef = new Pilha(25);
 	int aux = 0;
@@ -151,7 +165,17 @@ int main() {
 		al_show_native_message_box(NULL, "AVISO!", "ERRO:", "A BIGORNA NÃO PODE SER CRIADA", NULL, ALLEGRO_MESSAGEBOX_ERROR);
 		return -1;
 	}
+	
+	// ---------- INICIALIZAÇÃO DO VASO ---------
+	
+	
+    vaso = al_load_bitmap(VASO_FILE);
 
+	if (!vaso)
+	{
+		al_show_native_message_box(NULL, "AVISO!", "ERRO:", "O VASO NÃO PODE SER CRIADO", NULL, ALLEGRO_MESSAGEBOX_ERROR);
+		return -1;
+	}
 
 	// ------- INICIALIZAÇÃO DA PILHA DEF -------
 
@@ -170,6 +194,15 @@ int main() {
 	if (!fim_de_jogo)
 	{
 		al_show_native_message_box(NULL, "AVISO!", "ERRO:", "O FIM DE JOGO NÃO PODE SER CRIADO", NULL, ALLEGRO_MESSAGEBOX_ERROR);
+		return -1;
+	}
+	
+	// ---------- INICIALIZAÇÃO DO GANHA JOGO -------
+	ganhou_jogo = al_load_bitmap(GANHA_JOGO_FILE);
+
+	if (!ganhou_jogo)
+	{
+		al_show_native_message_box(NULL, "AVISO!", "ERRO:", "O GANHA JOGO NÃO PODE SER CRIADO", NULL, ALLEGRO_MESSAGEBOX_ERROR);
 		return -1;
 	}
 
@@ -198,7 +231,7 @@ int main() {
 	InitPinguim(p1);
 	InitSaca(sacas, NUM_SACAS);
 	InitBigorna(bigornas, NUM_BIGORNAS);
-	
+	InitVaso(vasos, NUM_VASOS);
 
 	// ------- LOOP PRINCIPAL -------
 	al_start_timer(timer);
@@ -219,9 +252,9 @@ int main() {
 		case STATE_MENU:
 			teclas[DIREITA] = false;
 			teclas[ESQUERDA] = false;
-			teclas[ESPAÇO] = false;
+			teclas[ESPACO] = false;
 
-			al_draw_bitmap(game_menu, 0, 0, NULL);
+			al_draw_bitmap(game_menu, 0, 0, 0);
 
 			al_flip_display();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -260,7 +293,7 @@ int main() {
 					teclas[ESQUERDA] = true;
 					break;
 				case ALLEGRO_KEY_SPACE:
-					teclas[ESPAÇO] = true;
+					teclas[ESPACO] = true;
 					break;
 				}
 
@@ -277,7 +310,7 @@ int main() {
 					teclas[ESQUERDA] = false;
 					break;
 				case ALLEGRO_KEY_SPACE:
-					teclas[ESPAÇO] = false;
+					teclas[ESPACO] = false;
 					break;
 				}
 
@@ -295,7 +328,7 @@ int main() {
 					MovePinguimEsquerda(p1);
 				}
 
-				if (teclas[ESPAÇO]) {
+				if (teclas[ESPACO]) {
 					if (p1.x < 300 && p1.x >= 0) {
 						pilhaInter->Desempilha(aux, ok);
 						if (aux != 0) {
@@ -305,6 +338,11 @@ int main() {
 						Atualizarpilha(pilhaInter);
 					}
 				}
+				
+				else if(vitoria == true)
+				{
+                    gamestate = STATE_WIN;
+				}
 
 
 				LiberaSaca(sacas, NUM_SACAS);
@@ -313,6 +351,9 @@ int main() {
 				LiberaBigorna(bigornas, NUM_BIGORNAS);
 				AtualizarBigorna(bigornas, NUM_BIGORNAS);
 				ColideBigornaPinguim(bigornas, NUM_BIGORNAS, p1, pilhaInter);
+				LiberaVaso(vasos, NUM_VASOS);
+				AtualizarVaso(vasos, NUM_VASOS);
+				ColideVasoPinguim(vasos, NUM_VASOS, p1, pilhaInter);
 
 			}
 
@@ -324,12 +365,13 @@ int main() {
 
 				desenha = false;
 
-				al_draw_bitmap(background, 0, 0, NULL);
+				al_draw_bitmap(background, 0, 0, 0);
 				DesenhapilhaDef(pilhaDef);
 				DesenhaPinguim(p1);
 				DesenhaSaca(sacas, NUM_SACAS);
 				DesenhaCrashedSaca(sacas, NUM_SACAS);
 				DesenhaBigorna(bigornas, NUM_BIGORNAS);
+				DesenhaVaso(vasos, NUM_VASOS);
 
 				al_flip_display();
 				al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -357,10 +399,43 @@ int main() {
 				break;
 			}
 
-			al_draw_bitmap(background, 0, 0, NULL);
+			al_draw_bitmap(background, 0, 0, 0);
 			DesenhaPinguim(p1);
 			DesenhapilhaDef(pilhaDef);
-			al_draw_bitmap(fim_de_jogo, 720, 59, NULL);
+			al_draw_bitmap(fim_de_jogo, 720, 59, 0);
+
+			al_flip_display();
+			al_clear_to_color(al_map_rgb(0, 0, 0));
+
+			break;
+			
+			case STATE_WIN:
+
+			    switch (ev.keyboard.keycode)
+			    {
+			    case ALLEGRO_KEY_ESCAPE:
+				    fim = true;
+				    break;
+			    case ALLEGRO_KEY_SPACE:
+				    morte = false;
+				    vitoria = false;	
+				    bool ok1 = true;
+				    bool ok2 = true;
+				    while (ok1) {
+					    pilhaInter->Desempilha(aux, ok1);
+				    }
+				    while (ok2) {
+					    pilhaDef->Desempilha(aux, ok2);
+				    }
+				    Atualizarpilha(pilhaInter);
+				    gamestate = STATE_MENU;
+				    break;
+			    }
+
+			al_draw_bitmap(background, 0, 0, 0);
+			DesenhaPinguim(p1);
+			DesenhapilhaDef(pilhaDef);
+			al_draw_bitmap(ganhou_jogo, 720, 59, 0);
 
 			al_flip_display();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -399,7 +474,7 @@ void InitPinguim(Pinguim& p1)
 
 void DesenhaPinguim(Pinguim& p1) {
 
-	al_draw_bitmap_region(player, s_x, s_y, s_w, s_h, p1.x, p1.y, NULL);
+	al_draw_bitmap_region(player, s_x, s_y, s_w, s_h, p1.x, p1.y, 0);
 
 }
 
@@ -476,7 +551,7 @@ void AtualizarSaca(Saca sacas[], int tamanho) {
 void DesenhaSaca(Saca sacas[], int tamanho) {
 	for (int i = 0; i < tamanho; i++) {
 		if (sacas[i].ativo) {
-			al_draw_bitmap_region(cafe, sacas[i].cafe_sx, sacas[i].cafe_sy, sacas[i].cafe_sw, sacas[i].cafe_sh, sacas[i].x, sacas[i].y, NULL);
+			al_draw_bitmap_region(cafe, sacas[i].cafe_sx, sacas[i].cafe_sy, sacas[i].cafe_sw, sacas[i].cafe_sh, sacas[i].x, sacas[i].y, 0);
 		}
 	}
 }
@@ -507,7 +582,7 @@ void DesenhaCrashedSaca(Saca sacas[], int s_tamanho) {
 		int x_fixo = sacas[i].x;
 		int y_fixo = sacas[i].y;
 		if (!sacas[i].ativo && !sacas[i].colide) {
-			al_draw_bitmap_region(cafe, 183, 9, 232, 100, x_fixo, y_fixo, NULL);
+			al_draw_bitmap_region(cafe, 183, 9, 232, 100, x_fixo, y_fixo, 0);
 		}
 	}
 }
@@ -560,7 +635,7 @@ void AtualizarBigorna(Bigorna bigornas[], int tamanho) {
 void DesenhaBigorna(Bigorna bigornas[], int tamanho) {
 	for (int i = 0; i < tamanho; i++) {
 		if (bigornas[i].ativo) {
-			al_draw_bitmap(bigorna, bigornas[i].x, bigornas[i].y, NULL);
+			al_draw_bitmap(bigorna, bigornas[i].x, bigornas[i].y, 0);
 		}
 	}
 }
@@ -587,6 +662,83 @@ void ColideBigornaPinguim(Bigorna bigornas[], int s_tamanho, Pinguim p1, Pilha* 
 		}
 	}
 }
+
+// --------- VASO -------------
+
+void InitVaso(Vaso vasos[], int tamanho) {
+	for (int i = 0; i < tamanho; i++) {
+		vasos[i].ID = VASO;
+		vasos[i].velocidade_x = rand() % 7 + 2;
+		vasos[i].velocidade_y = 3;
+		vasos[i].borda_x = 165;
+		vasos[i].borda_y = 80;
+		vasos[i].ativo = false;
+		vasos[i].colide = false;
+	}
+}
+void LiberaVaso(Vaso vasos[], int tamanho) {
+	if (morte == false) {
+		for (int i = 0; i < tamanho; i++) {
+			if (!vasos[i].ativo) {
+				if (rand() % 100 == 0) {
+					vasos[i].x = 1550;
+					vasos[i].y = 200;
+					vasos[i].velocidade_x = rand() % 7 + 2;
+					vasos[i].velocidade_y = 3;
+					vasos[i].colide = false;
+					vasos[i].ativo = true;
+					break;
+				}
+			}
+		}
+	}
+}
+void AtualizarVaso(Vaso vasos[], int tamanho) {
+	for (int i = 0; i < tamanho; i++) {
+		if (vasos[i].ativo) {
+			vasos[i].x -= vasos[i].velocidade_x;
+			vasos[i].y += vasos[i].velocidade_y;
+
+			if (vasos[i].x < 0) {
+				vasos[i].ativo = false;
+			}
+			if (vasos[i].y > 810) {
+				vasos[i].ativo = false;
+			}
+		}
+	}
+}
+void DesenhaVaso(Vaso vasos[], int tamanho) {
+	for (int i = 0; i < tamanho; i++) {
+		if (vasos[i].ativo) {
+			al_draw_bitmap(vaso, vasos[i].x, vasos[i].y, 0);
+		}
+	}
+}
+void ColideVasoPinguim(Vaso vasos[], int s_tamanho, Pinguim p1, Pilha* pilha) {
+	if (morte == false) {
+		bool ok = false;
+		for (int i = 0; i < s_tamanho; i++) {
+			if (vasos[i].ativo) {
+				if ((vasos[i].x - vasos[i].borda_x / 2) < (p1.x + p1.borda_x / 2) &&
+					(vasos[i].x + vasos[i].borda_x / 2) > (p1.x - p1.borda_x / 2) &&
+					(vasos[i].y + vasos[i].borda_y / 2) > (p1.y - p1.borda_y / 2) &&
+					(vasos[i].y - vasos[i].borda_y / 2) < (p1.y + p1.borda_y / 2))
+				{
+					vasos[i].colide = true;
+					s_x = 249;
+					s_y = 625;
+					s_w = 239;
+					s_h = 329;
+					morte = true;
+					vasos[i].ativo = false;
+
+				}
+			}
+		}
+	}
+}
+
 
 // --------- PILHA ------------
 
@@ -681,7 +833,7 @@ void DesenhapilhaDef(Pilha* pilha) {
 
 
 	for (int i = 0; i < cont; i++) {
-		al_draw_bitmap_region(def, 7, 9, 172, 100, pos_x, pos_y, NULL);
+		al_draw_bitmap_region(def, 7, 9, 172, 100, pos_x, pos_y, 0);
 		pos_y -= 25;
 	}
 
@@ -691,5 +843,8 @@ void DesenhapilhaDef(Pilha* pilha) {
 			cont--;
 			pilha->Empilha(x, Ok);
 		}
+	}
+	if(pilha->Cheia() == true){
+	    vitoria = true;
 	}
 }

@@ -22,7 +22,7 @@ void Pilha::Empilha(int numero, bool& deuCerto) {
     }
 }
 
-// Implementação da função apra desempilhar um elemento
+// Implementação da função para desempilhar um elemento
 void Pilha::Desempilha(int& numero, bool& deuCerto) {
     if (this->Vazia()) {
         deuCerto = false;
