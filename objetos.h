@@ -1,5 +1,5 @@
 // ------- ARQUIVO OBJETOS ------
-enum TIPO { PLAYER, CAFE, BIGORNA, VASO };
+enum TIPO { PLAYER, CAFE, BIGORNA, VASO, PEIXE };
 
 struct Pinguim {
 	int ID;
@@ -36,6 +36,18 @@ struct Bigorna {
 };
 
 struct Vaso {
+	int ID;
+	int x;
+	int y;
+	int velocidade_x;
+	int velocidade_y;
+	int borda_x;
+	int borda_y;
+	bool ativo;
+	bool colide;
+};
+
+struct Peixe {
 	int ID;
 	int x;
 	int y;

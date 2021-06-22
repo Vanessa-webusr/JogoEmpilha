@@ -1,4 +1,4 @@
-// 1=Cafe /  2=Bigorna e Vaso
+// 1=Cafe /  2=Bigorna, Vaso e Peixe
 #include "PilhaInter.h"
 
 

@@ -17,6 +17,7 @@ const int FPS = 60;
 const int NUM_SACAS = 2;
 const int NUM_BIGORNAS = 1;
 const int NUM_VASOS = 1;
+const int NUM_PEIXES = 1;
 
 // ---------- GAME STATES --------
 const int STATE_MENU = 0;
@@ -39,6 +40,7 @@ ALLEGRO_BITMAP* fim_de_jogo = NULL;
 ALLEGRO_BITMAP* game_menu = NULL;
 ALLEGRO_BITMAP* ganhou_jogo = NULL;
 ALLEGRO_BITMAP* vaso = NULL;
+ALLEGRO_BITMAP* peixe = NULL;
 
 
 #define BACKGROUND_FILE "fundo_neve_caminhao.png"
@@ -49,6 +51,7 @@ ALLEGRO_BITMAP* vaso = NULL;
 #define GAME_MENU_FILE "game_menu_v3.png"
 #define GANHA_JOGO_FILE "vencedor.png"
 #define VASO_FILE "vaso.png"
+#define PEIXE_FILE "peixe.png"
 
 
 // --------- PROTÓTIPOS --------------------
@@ -69,13 +72,21 @@ void LiberaBigorna(Bigorna bigornas[], int tamanho);
 void AtualizarBigorna(Bigorna bigornas[], int tamanho);
 void DesenhaBigorna(Bigorna bigornas[], int tamanho);
 void ColideBigornaPinguim(Bigorna bigornas[], int s_tamanho, Pinguim p1, Pilha* pilha);
+void DesenhaCrashedBigorna(Bigorna bigornas[], int s_tamanho);
 
 void InitVaso(Vaso vasos[], int tamanho);
 void LiberaVaso(Vaso vasos[], int tamanho);
 void AtualizarVaso(Vaso vasos[], int tamanho);
 void DesenhaVaso(Vaso vasos[], int tamanho);
 void ColideVasoPinguim(Vaso vasos[], int s_tamanho, Pinguim p1, Pilha* pilha);
+void DesenhaCrashedVaso(Vaso vasos[], int s_tamanho);
 
+void InitPeixe(Peixe peixes[], int tamanho);
+void LiberaPeixe(Peixe peixes[], int tamanho);
+void AtualizarPeixe(Peixe peixes[], int tamanho);
+void DesenhaPeixe(Peixe peixes[], int tamanho);
+void ColidePeixePinguim(Peixe peixes[], int s_tamanho, Pinguim p1, Pilha* pilha);
+void DesenhaCrashedPeixe(Peixe peixes[], int s_tamanho);
 
 void Atualizarpilha(Pilha* pilha);
 void DesenhapilhaDef(Pilha* pilha);
@@ -102,6 +113,7 @@ int main() {
 	Saca sacas[NUM_SACAS];
 	Bigorna bigornas[NUM_BIGORNAS];
 	Vaso vasos[NUM_VASOS];
+	Peixe peixes[NUM_PEIXES];
 	PilhaInter* pilhaInter = new PilhaInter(6);
 	Pilha* pilhaDef = new Pilha(25);
 	int aux = 0;
@@ -176,6 +188,17 @@ int main() {
 		al_show_native_message_box(NULL, "AVISO!", "ERRO:", "O VASO NÃO PODE SER CRIADO", NULL, ALLEGRO_MESSAGEBOX_ERROR);
 		return -1;
 	}
+	
+	// ---------- INICIALIZAÇÃO DO PEIXE ---------
+	
+	
+    peixe = al_load_bitmap(PEIXE_FILE);
+
+	if (!peixe)
+	{
+		al_show_native_message_box(NULL, "AVISO!", "ERRO:", "O PEIXE NÃO PODE SER CRIADO", NULL, ALLEGRO_MESSAGEBOX_ERROR);
+		return -1;
+	}
 
 	// ------- INICIALIZAÇÃO DA PILHA DEF -------
 
@@ -232,6 +255,7 @@ int main() {
 	InitSaca(sacas, NUM_SACAS);
 	InitBigorna(bigornas, NUM_BIGORNAS);
 	InitVaso(vasos, NUM_VASOS);
+	InitPeixe(peixes, NUM_PEIXES);
 
 	// ------- LOOP PRINCIPAL -------
 	al_start_timer(timer);
@@ -354,6 +378,9 @@ int main() {
 				LiberaVaso(vasos, NUM_VASOS);
 				AtualizarVaso(vasos, NUM_VASOS);
 				ColideVasoPinguim(vasos, NUM_VASOS, p1, pilhaInter);
+				LiberaPeixe(peixes, NUM_PEIXES);
+				AtualizarPeixe(peixes, NUM_PEIXES);
+				ColidePeixePinguim(peixes, NUM_PEIXES, p1, pilhaInter);
 
 			}
 
@@ -371,7 +398,11 @@ int main() {
 				DesenhaSaca(sacas, NUM_SACAS);
 				DesenhaCrashedSaca(sacas, NUM_SACAS);
 				DesenhaBigorna(bigornas, NUM_BIGORNAS);
+				DesenhaCrashedBigorna(bigornas, NUM_BIGORNAS);
 				DesenhaVaso(vasos, NUM_VASOS);
+				DesenhaCrashedVaso(vasos, NUM_VASOS);
+				DesenhaPeixe(peixes, NUM_PEIXES);
+				DesenhaCrashedPeixe(peixes, NUM_PEIXES);
 
 				al_flip_display();
 				al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -451,6 +482,8 @@ int main() {
 	al_destroy_bitmap(background);
 	al_destroy_bitmap(player);
 	al_destroy_bitmap(cafe);
+	al_destroy_bitmap(vaso);
+	al_destroy_bitmap(peixe);
 	al_destroy_bitmap(def);
 	al_destroy_event_queue(fila_eventos);
 	al_destroy_timer(timer);
@@ -663,6 +696,17 @@ void ColideBigornaPinguim(Bigorna bigornas[], int s_tamanho, Pinguim p1, Pilha* 
 	}
 }
 
+void DesenhaCrashedBigorna(Bigorna bigornas[], int s_tamanho) {
+	for (int i = 0; i < s_tamanho; i++) {
+		int x_fixo = bigornas[i].x;
+		int y_fixo = bigornas[i].y;
+		if (!bigornas[i].ativo && !bigornas[i].colide) {
+			al_draw_bitmap(bigorna, x_fixo, y_fixo, 0);
+		}
+	}
+}
+
+
 // --------- VASO -------------
 
 void InitVaso(Vaso vasos[], int tamanho) {
@@ -702,7 +746,7 @@ void AtualizarVaso(Vaso vasos[], int tamanho) {
 			if (vasos[i].x < 0) {
 				vasos[i].ativo = false;
 			}
-			if (vasos[i].y > 810) {
+			if (vasos[i].y > 750) {
 				vasos[i].ativo = false;
 			}
 		}
@@ -727,7 +771,7 @@ void ColideVasoPinguim(Vaso vasos[], int s_tamanho, Pinguim p1, Pilha* pilha) {
 				{
 					vasos[i].colide = true;
 					s_x = 249;
-					s_y = 625;
+					s_y = 630;
 					s_w = 239;
 					s_h = 329;
 					morte = true;
@@ -739,6 +783,101 @@ void ColideVasoPinguim(Vaso vasos[], int s_tamanho, Pinguim p1, Pilha* pilha) {
 	}
 }
 
+void DesenhaCrashedVaso(Vaso vasos[], int s_tamanho) {
+	for (int i = 0; i < s_tamanho; i++) {
+		int x_fixo = vasos[i].x;
+		int y_fixo = vasos[i].y;
+		if (!vasos[i].ativo && !vasos[i].colide) {
+			al_draw_bitmap(vaso, x_fixo, y_fixo, 0);
+		}
+	}
+}
+
+// --------- PEIXE -------------
+
+void InitPeixe(Peixe peixes[], int tamanho) {
+	for (int i = 0; i < tamanho; i++) {
+		peixes[i].ID = PEIXE;
+		peixes[i].velocidade_x = rand() % 7 + 2;
+		peixes[i].velocidade_y = 3;
+		peixes[i].borda_x = 165;
+		peixes[i].borda_y = 80;
+		peixes[i].ativo = false;
+		peixes[i].colide = false;
+	}
+}
+void LiberaPeixe(Peixe peixes[], int tamanho) {
+	if (morte == false) {
+		for (int i = 0; i < tamanho; i++) {
+			if (!peixes[i].ativo) {
+				if (rand() % 100 == 0) {
+					peixes[i].x = 1550;
+					peixes[i].y = 200;
+					peixes[i].velocidade_x = rand() % 7 + 2;
+					peixes[i].velocidade_y = 3;
+					peixes[i].colide = false;
+					peixes[i].ativo = true;
+					break;
+				}
+			}
+		}
+	}
+}
+void AtualizarPeixe(Peixe peixes[], int tamanho) {
+	for (int i = 0; i < tamanho; i++) {
+		if (peixes[i].ativo) {
+			peixes[i].x -= peixes[i].velocidade_x;
+			peixes[i].y += peixes[i].velocidade_y;
+
+			if (peixes[i].x < 0) {
+				peixes[i].ativo = false;
+			}
+			if (peixes[i].y > 810) {
+				peixes[i].ativo = false;
+			}
+		}
+	}
+}
+void DesenhaPeixe(Peixe peixes[], int tamanho) {
+	for (int i = 0; i < tamanho; i++) {
+		if (peixes[i].ativo) {
+			al_draw_bitmap(peixe, peixes[i].x, peixes[i].y, 0);
+		}
+	}
+}
+void ColidePeixePinguim(Peixe peixes[], int s_tamanho, Pinguim p1, Pilha* pilha) {
+	if (morte == false) {
+		bool ok = false;
+		for (int i = 0; i < s_tamanho; i++) {
+			if (peixes[i].ativo) {
+				if ((peixes[i].x - peixes[i].borda_x / 2) < (p1.x + p1.borda_x / 2) &&
+					(peixes[i].x + peixes[i].borda_x / 2) > (p1.x - p1.borda_x / 2) &&
+					(peixes[i].y + peixes[i].borda_y / 2) > (p1.y - p1.borda_y / 2) &&
+					(peixes[i].y - peixes[i].borda_y / 2) < (p1.y + p1.borda_y / 2))
+				{
+					peixes[i].colide = true;
+					s_x = 3;
+					s_y = 630;
+					s_w = 250;
+					s_h = 329;
+					morte = true;
+					peixes[i].ativo = false;
+
+				}
+			}
+		}
+	}
+}
+
+void DesenhaCrashedPeixe(Peixe peixes[], int s_tamanho) {
+	for (int i = 0; i < s_tamanho; i++) {
+		int x_fixo = peixes[i].x;
+		int y_fixo = peixes[i].y;
+		if (!peixes[i].ativo && !peixes[i].colide) {
+			al_draw_bitmap(peixe, x_fixo, y_fixo, 0);
+		}
+	}
+}
 
 // --------- PILHA ------------
 
