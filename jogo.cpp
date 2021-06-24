@@ -36,6 +36,7 @@ float s_x = 17, s_y = 27, s_w = 234, s_h = 279;
 bool morte = false;
 bool vitoria = false;
 
+
 ALLEGRO_DISPLAY* display = NULL;
 ALLEGRO_BITMAP* background = NULL;
 ALLEGRO_BITMAP* player = NULL;
@@ -55,7 +56,7 @@ ALLEGRO_BITMAP* peixe = NULL;
 #define BIGORNA_FILE "anvil_v1.png"
 #define FIM_DE_JOGO_FILE "game_over_v5.png"
 #define GAME_MENU_FILE "game_menu_v3.png"
-#define GANHA_JOGO_FILE "vencedor.png"
+#define GANHA_JOGO_FILE "vitoria.png"
 #define VASO_FILE "vaso.png"
 #define PEIXE_FILE "peixe.png"
 
@@ -105,12 +106,11 @@ int main() {
 	ALLEGRO_EVENT_QUEUE* fila_eventos = NULL;
 	ALLEGRO_TIMER* timer = NULL;
 
-
+    int fase = 1;
 	// ------- VARIÁVEL FIM DO PROGRAMA PRINCIPAL ------
 	int gamestate = STATE_MENU;
 	bool fim = false;
 	bool desenha = true;
-
 
 	bool teclas[] = { false, false, false,false,false };
 
@@ -156,11 +156,11 @@ int main() {
 	
 
 	// ------- INICIALIZAÇÃO DE SONS ----------------
-	SOM Som_Menu("trilha_menu.ogg");
-	SOM	Som_Fase1("trilha_sonora.ogg");
-	SOM Som_GameOver("trilha_gameover.ogg");
-	SOM Som_Empilha("trilha_empilha.ogg");
-	SOM Som_Vitoria("trilha_vitoria.ogg");
+	SOM Som_Menu((char*)"trilha_menu.ogg");
+	SOM	Som_Fase1((char*)"trilha_sonora.ogg");
+	SOM Som_GameOver((char*)"trilha_gameover.ogg");
+	SOM Som_Empilha((char*)"trilha_empilha.ogg");
+	SOM Som_Vitoria((char*)"trilha_vitoria.ogg");
 	
 
 	// ------- INICIALIZAÇÃO DO FUNDO -------
@@ -378,6 +378,10 @@ int main() {
 			else if (vitoria){
 				gamestate = STATE_WIN;
 				Toca_Vitoria = true;
+				fase = fase + 1;
+				if(fase > 3){
+				    fase = 1;
+				}
 			}
 
 			else if (ev.type == ALLEGRO_EVENT_TIMER)
@@ -420,13 +424,20 @@ int main() {
 				LiberaBigorna(bigornas, NUM_BIGORNAS);
 				AtualizarBigorna(bigornas, NUM_BIGORNAS);
 				ColideBigornaPinguim(bigornas, NUM_BIGORNAS, p1, pilhaInter);
-				LiberaVaso(vasos, NUM_VASOS);
-				AtualizarVaso(vasos, NUM_VASOS);
-				ColideVasoPinguim(vasos, NUM_VASOS, p1, pilhaInter);
-				LiberaPeixe(peixes, NUM_PEIXES);
-				AtualizarPeixe(peixes, NUM_PEIXES);
-				ColidePeixePinguim(peixes, NUM_PEIXES, p1, pilhaInter);
-
+				
+				if(fase == 2){
+				    LiberaVaso(vasos, NUM_VASOS);
+				    AtualizarVaso(vasos, NUM_VASOS);
+				    ColideVasoPinguim(vasos, NUM_VASOS, p1, pilhaInter);
+				}
+				if(fase == 3){
+				    LiberaVaso(vasos, NUM_VASOS);
+				    AtualizarVaso(vasos, NUM_VASOS);
+				    ColideVasoPinguim(vasos, NUM_VASOS, p1, pilhaInter);
+				    LiberaPeixe(peixes, NUM_PEIXES);
+				    AtualizarPeixe(peixes, NUM_PEIXES);
+				    ColidePeixePinguim(peixes, NUM_PEIXES, p1, pilhaInter);
+                }
 			}
 
 
@@ -444,11 +455,19 @@ int main() {
 				DesenhaCrashedSaca(sacas, NUM_SACAS);
 				DesenhaBigorna(bigornas, NUM_BIGORNAS);
 				DesenhaCrashedBigorna(bigornas, NUM_BIGORNAS);
-				DesenhaVaso(vasos, NUM_VASOS);
-				DesenhaCrashedVaso(vasos, NUM_VASOS);
-				DesenhaPeixe(peixes, NUM_PEIXES);
-				DesenhaCrashedPeixe(peixes, NUM_PEIXES);
-
+				
+				if(fase == 2)
+				{
+				    DesenhaVaso(vasos, NUM_VASOS);
+				    DesenhaCrashedVaso(vasos, NUM_VASOS);
+				}
+				if(fase == 3)
+				{
+				    DesenhaVaso(vasos, NUM_VASOS);
+				    DesenhaCrashedVaso(vasos, NUM_VASOS);
+				    DesenhaPeixe(peixes, NUM_PEIXES);
+				    DesenhaCrashedPeixe(peixes, NUM_PEIXES);
+                }
 				al_flip_display();
 				al_clear_to_color(al_map_rgb(0, 0, 0));
 			}
@@ -997,8 +1016,8 @@ void Atualizarpilha(Pilha* pilha) {
 }
 
 void DesenhapilhaDef(Pilha* pilha) {
-	int pos_x = 100;
-	int pos_y = 675;
+	int pos_x = 100; //width_t*0.0537;
+	int pos_y = 675; //height_t*0.692;
 
 	int x;
 	int cont = 0;
@@ -1029,4 +1048,5 @@ void DesenhapilhaDef(Pilha* pilha) {
 	if(pilha->Cheia() == true){
 	    vitoria = true;
 	}
+	
 }
