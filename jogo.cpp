@@ -1,14 +1,17 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_native_dialog.h>
 #include <allegro5/allegro_image.h>
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
 #include <cstdlib>
 #include <ctime>
 #include <cstddef>
 #include "objetos.h"
 #include "Pilha.h"
 #include "PilhaInter.h"
+#include "Som.h"
 
-enum TECLAS { DIREITA, ESQUERDA, ESPACO };
+enum TECLAS { DIREITA, ESQUERDA, ESPACO , M , ESC};
 
 // ---------- VARIÁVEIS GLOBAIS ---------
 const int width_t = 1860;
@@ -18,6 +21,9 @@ const int NUM_SACAS = 2;
 const int NUM_BIGORNAS = 1;
 const int NUM_VASOS = 1;
 const int NUM_PEIXES = 1;
+const int QUANT_SONS = 10;
+const int OBJETIVO_FASE_1 = 7;
+const int LIMITE_PINGUIM = 6;	// Capacidade máxima =  n-1 =5
 
 // ---------- GAME STATES --------
 const int STATE_MENU = 0;
@@ -64,7 +70,7 @@ void InitSaca(Saca sacas[], int tamanho);
 void LiberaSaca(Saca sacas[], int tamanho);
 void AtualizarSaca(Saca sacas[], int tamanho);
 void DesenhaSaca(Saca sacas[], int tamanho);
-void ColideSacaPinguim(Saca sacas[], int s_tamanho, Pinguim p1, Pilha* pilha);
+void ColideSacaPinguim(Saca sacas[], int s_tamanho, Pinguim p1, Pilha* pilha, bool &ColideSaca);
 void DesenhaCrashedSaca(Saca sacas[], int s_tamanho);
 
 void InitBigorna(Bigorna bigornas[], int tamanho);
@@ -105,8 +111,14 @@ int main() {
 	bool fim = false;
 	bool desenha = true;
 
-	bool teclas[] = { false, false, false };
 
+	bool teclas[] = { false, false, false,false,false };
+
+	// -------- VARIAVEIS PARA CONTROLE DO SOM ----------
+	bool ColideSaca = false;
+	bool Toca_Vitoria = false;
+	bool Toca_GameOver = false;
+	bool Audio = true;
 
 	// ------- INICIALIZAÇÃO DE OBJETOS -----------
 	Pinguim p1;
@@ -114,8 +126,8 @@ int main() {
 	Bigorna bigornas[NUM_BIGORNAS];
 	Vaso vasos[NUM_VASOS];
 	Peixe peixes[NUM_PEIXES];
-	PilhaInter* pilhaInter = new PilhaInter(6);
-	Pilha* pilhaDef = new Pilha(25);
+	PilhaInter* pilhaInter = new PilhaInter(LIMITE_PINGUIM);
+	Pilha* pilhaDef = new Pilha(OBJETIVO_FASE_1);
 	int aux = 0;
 	bool ok = false;
 
@@ -138,6 +150,18 @@ int main() {
 	// ------- INICIALIZAÇÃO DE ADDONS E INSTALAÇÕES -------
 	al_install_keyboard();
 	al_init_image_addon();
+	al_install_audio();
+	al_init_acodec_addon();
+	al_reserve_samples(QUANT_SONS);
+	
+
+	// ------- INICIALIZAÇÃO DE SONS ----------------
+	SOM Som_Menu("trilha_menu.ogg");
+	SOM	Som_Fase1("trilha_sonora.ogg");
+	SOM Som_GameOver("trilha_gameover.ogg");
+	SOM Som_Empilha("trilha_empilha.ogg");
+	SOM Som_Vitoria("trilha_vitoria.ogg");
+	
 
 	// ------- INICIALIZAÇÃO DO FUNDO -------
 	background = al_load_bitmap(BACKGROUND_FILE);
@@ -271,73 +295,89 @@ int main() {
 		{
 			fim = true;
 		}
+		if (ev.type == ALLEGRO_EVENT_KEY_DOWN)
+		{
+
+			switch (ev.keyboard.keycode)
+			{
+			case ALLEGRO_KEY_ESCAPE:
+				fim = true;
+				break;
+			case ALLEGRO_KEY_RIGHT:
+				teclas[DIREITA] = true;
+				break;
+			case ALLEGRO_KEY_LEFT:
+				teclas[ESQUERDA] = true;
+				break;
+			case ALLEGRO_KEY_SPACE:
+				teclas[ESPACO] = true;
+				break;
+			case ALLEGRO_KEY_M:
+				teclas[M] = true;
+				break;
+			}
+
+		}
+		else if (ev.type == ALLEGRO_EVENT_KEY_UP)
+		{
+			switch (ev.keyboard.keycode)
+			{
+			case ALLEGRO_KEY_RIGHT:
+				teclas[DIREITA] = false;
+				break;
+			case ALLEGRO_KEY_LEFT:
+				teclas[ESQUERDA] = false;
+				break;
+			case ALLEGRO_KEY_SPACE:
+				teclas[ESPACO] = false;
+				break;
+			case ALLEGRO_KEY_M:
+				teclas[M] = false;
+				break;
+			}
+
+		}
+		if (teclas[M]) {
+			Audio = !Audio;
+			teclas[M] = false;
+		}
 
 		switch (gamestate) {
 		case STATE_MENU:
-			teclas[DIREITA] = false;
-			teclas[ESQUERDA] = false;
-			teclas[ESPACO] = false;
 
 			al_draw_bitmap(game_menu, 0, 0, 0);
 
 			al_flip_display();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
+			if (Audio) {
+				Som_Menu.setLoop(true);
+				Som_Menu.setVolume(1);
+				Som_Menu.Play();
+			}
+			else
+				Som_Menu.Stop();
 
-			if (ev.type == ALLEGRO_EVENT_KEY_DOWN)
-			{
-				switch (ev.keyboard.keycode)
-				{
-				case ALLEGRO_KEY_ESCAPE:
-					fim = true;
-					break;
-				case ALLEGRO_KEY_SPACE:
-					gamestate = STATE_GAME;
-					break;
-				}
+			if (teclas[ESPACO]) {
+				gamestate = STATE_GAME;
+				teclas[ESPACO] = false;
 			}
 			break;
 		case STATE_GAME:
+			Som_Menu.Stop();
+			if (Audio) {
+				Som_Fase1.setLoop(true);
+				Som_Fase1.Play();
+			}
+			else
+				Som_Fase1.Stop();
 
 			if (morte) {
 				gamestate = STATE_OVER;
+				Toca_GameOver = true;
 			}
-
-			else if (ev.type == ALLEGRO_EVENT_KEY_DOWN)
-			{
-
-				switch (ev.keyboard.keycode)
-				{
-				case ALLEGRO_KEY_ESCAPE:
-					fim = true;
-					break;
-				case ALLEGRO_KEY_RIGHT:
-					teclas[DIREITA] = true;
-					break;
-				case ALLEGRO_KEY_LEFT:
-					teclas[ESQUERDA] = true;
-					break;
-				case ALLEGRO_KEY_SPACE:
-					teclas[ESPACO] = true;
-					break;
-				}
-
-			}
-
-			else if (ev.type == ALLEGRO_EVENT_KEY_UP)
-			{
-				switch (ev.keyboard.keycode)
-				{
-				case ALLEGRO_KEY_RIGHT:
-					teclas[DIREITA] = false;
-					break;
-				case ALLEGRO_KEY_LEFT:
-					teclas[ESQUERDA] = false;
-					break;
-				case ALLEGRO_KEY_SPACE:
-					teclas[ESPACO] = false;
-					break;
-				}
-
+			else if (vitoria){
+				gamestate = STATE_WIN;
+				Toca_Vitoria = true;
 			}
 
 			else if (ev.type == ALLEGRO_EVENT_TIMER)
@@ -354,24 +394,29 @@ int main() {
 
 				if (teclas[ESPACO]) {
 					if (p1.x < 300 && p1.x >= 0) {
-						pilhaInter->Desempilha(aux, ok);
-						if (aux != 0) {
-							pilhaDef->Empilha(aux, ok);
-							aux = 0;
+						while (!pilhaInter->Vazia())
+						{
+							pilhaInter->Desempilha(aux, ok);
+							if (aux != 0) {
+								pilhaDef->Empilha(aux, ok);
+								aux = 0;
+							}
+							Atualizarpilha(pilhaInter);
 						}
-						Atualizarpilha(pilhaInter);
 					}
+					teclas[ESPACO] = false;
 				}
 				
-				else if(vitoria == true)
-				{
-                    gamestate = STATE_WIN;
-				}
 
 
 				LiberaSaca(sacas, NUM_SACAS);
 				AtualizarSaca(sacas, NUM_SACAS);
-				ColideSacaPinguim(sacas, NUM_SACAS, p1, pilhaInter);
+				ColideSacaPinguim(sacas, NUM_SACAS, p1, pilhaInter, ColideSaca);
+				if (ColideSaca && Audio) {
+					Som_Empilha.Stop();
+					Som_Empilha.Play();
+					ColideSaca = false;
+				}
 				LiberaBigorna(bigornas, NUM_BIGORNAS);
 				AtualizarBigorna(bigornas, NUM_BIGORNAS);
 				ColideBigornaPinguim(bigornas, NUM_BIGORNAS, p1, pilhaInter);
@@ -409,14 +454,14 @@ int main() {
 			}
 			break;
 		case STATE_OVER:
+			Som_Fase1.Stop();
+			if (Toca_GameOver && Audio) {
+				Som_GameOver.Play();
+				Toca_GameOver = false;
+			}
 
-			switch (ev.keyboard.keycode)
-			{
-			case ALLEGRO_KEY_ESCAPE:
-				fim = true;
-				break;
-			case ALLEGRO_KEY_SPACE:
-				morte = false;	
+			if(teclas[ESPACO]){
+				morte = false;
 				bool ok1 = true;
 				bool ok2 = true;
 				while (ok1) {
@@ -427,7 +472,7 @@ int main() {
 				}
 				Atualizarpilha(pilhaInter);
 				gamestate = STATE_MENU;
-				break;
+				teclas[ESPACO] = false;
 			}
 
 			al_draw_bitmap(background, 0, 0, 0);
@@ -441,36 +486,34 @@ int main() {
 			break;
 			
 			case STATE_WIN:
-
-			    switch (ev.keyboard.keycode)
-			    {
-			    case ALLEGRO_KEY_ESCAPE:
-				    fim = true;
-				    break;
-			    case ALLEGRO_KEY_SPACE:
-				    morte = false;
-				    vitoria = false;	
-				    bool ok1 = true;
-				    bool ok2 = true;
-				    while (ok1) {
-					    pilhaInter->Desempilha(aux, ok1);
-				    }
-				    while (ok2) {
-					    pilhaDef->Desempilha(aux, ok2);
-				    }
-				    Atualizarpilha(pilhaInter);
-				    gamestate = STATE_MENU;
-				    break;
+				Som_Fase1.Stop();
+				if (Toca_Vitoria && Audio) {
+					Som_Vitoria.Play();
+					Toca_Vitoria = false;
+				}
+			    if(teclas[ESPACO]){
+					morte = false;
+					vitoria = false;
+					bool ok1 = true;
+					bool ok2 = true;
+					while (ok1) {
+						pilhaInter->Desempilha(aux, ok1);
+					}
+					while (ok2) {
+						pilhaDef->Desempilha(aux, ok2);
+					}
+					Atualizarpilha(pilhaInter);
+					gamestate = STATE_MENU;
+					teclas[ESPACO] = false;
 			    }
 
 			al_draw_bitmap(background, 0, 0, 0);
-			DesenhaPinguim(p1);
 			DesenhapilhaDef(pilhaDef);
+			DesenhaPinguim(p1);
 			al_draw_bitmap(ganhou_jogo, 720, 59, 0);
 
 			al_flip_display();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
-
 			break;
 		}
 	}
@@ -589,7 +632,7 @@ void DesenhaSaca(Saca sacas[], int tamanho) {
 	}
 }
 
-void ColideSacaPinguim(Saca sacas[], int s_tamanho, Pinguim p1, Pilha* pilha) {
+void ColideSacaPinguim(Saca sacas[], int s_tamanho, Pinguim p1, Pilha* pilha, bool &ColideSaca) {
 	if (morte == false) {
 		bool ok = false;
 		for (int i = 0; i < s_tamanho; i++) {
@@ -603,7 +646,7 @@ void ColideSacaPinguim(Saca sacas[], int s_tamanho, Pinguim p1, Pilha* pilha) {
 					pilha->Empilha(1, ok);
 					Atualizarpilha(pilha);
 					sacas[i].ativo = false;
-
+					ColideSaca = true;
 				}
 			}
 		}

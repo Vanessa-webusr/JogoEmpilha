@@ -1,0 +1,3 @@
+﻿  jogo.cpp
+LINK : warning LNK4075: ignorando '/INCREMENTAL' devido a especificação '/OPT:ICF'
+  JogoPenguim.vcxproj -> C:\Users\Usuario\source\repos\Vanessa-webusr\JogoEmpilha\Release\JogoPenguim.exe
