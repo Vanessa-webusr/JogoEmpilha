@@ -46,6 +46,7 @@ int vidas = QUANT_VIDAS;
 bool reset = false;
 bool morte = false;
 bool vitoria = false;
+bool fim = false;
 
 int pontos = 0;
 
@@ -127,7 +128,6 @@ int main() {
 	int fase = 1;
 	// ------- VARIÁVEL FIM DO PROGRAMA PRINCIPAL ------
 	int gamestate = STATE_MENU;
-	bool fim = false;
 	bool desenha = true;
 
 	bool teclas[] = { false, false, false,false,false, false, false };
@@ -417,7 +417,7 @@ int main() {
 		case STATE_MENU:
 
 			al_draw_bitmap(game_menu, 0, 0, 0);
-			al_draw_rectangle(al_get_bitmap_width(game_menu) - 560, al_get_bitmap_height(game_menu) - 296, al_get_bitmap_width(game_menu) - 100, al_get_bitmap_height(game_menu) - 191, al_map_rgb(255, 0, 255), 6.0);
+		
 
 			al_flip_display();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -590,15 +590,15 @@ int main() {
 			}
 			
 			DestroiSaca(sacas, NUM_SACAS);
-				DestroiBigorna(bigornas, NUM_BIGORNAS);
-				DestroiVaso(vasos, NUM_VASOS);
-				DestroiPeixe(peixes, NUM_PEIXES);
+			DestroiBigorna(bigornas, NUM_BIGORNAS);
+			DestroiVaso(vasos, NUM_VASOS);
+			DestroiPeixe(peixes, NUM_PEIXES);
 
 			al_draw_bitmap(background, 0, 0, 0);
 			DesenhaPinguim(p1);
 			DesenhapilhaDef(pilhaDef);
 			al_draw_bitmap(fim_de_jogo, 720, 59, 0);
-        al_draw_textf(font60, al_map_rgb(0, 0, 0), 300, 700, 0, "Pressione espaco para continuar");
+			al_draw_textf(font60, al_map_rgb(0, 0, 0), 300, 700, 0, "Pressione espaco para continuar");
 			al_flip_display();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
             
@@ -706,27 +706,18 @@ int main() {
 				Toca_GameOver = false;
 			}
 
-			//if (teclas[ESPACO]) {
-				morte = false;
-				pontos = 0;
-				bool ok1 = true;
-				//bool ok2 = true;
-				while (ok1) {
-					pilhaInter->Desempilha(aux, ok1);
-				}
-				/*while (ok2) {
-					pilhaDef->Desempilha(aux, ok2);
-				}*/
-				Atualizarpilha(pilhaInter);
-				gamestate = STATE_GAME;
-				teclas[ESPACO] = false;
-				
-			//}
-			
+			morte = false;
+			bool ok1 = true;
+			while (ok1) {
+				pilhaInter->Desempilha(aux, ok1);
+			}
+			Atualizarpilha(pilhaInter);
+			gamestate = STATE_GAME;
+						
 			DestroiSaca(sacas, NUM_SACAS);
-				DestroiBigorna(bigornas, NUM_BIGORNAS);
-				DestroiVaso(vasos, NUM_VASOS);
-				DestroiPeixe(peixes, NUM_PEIXES);
+			DestroiBigorna(bigornas, NUM_BIGORNAS);
+			DestroiVaso(vasos, NUM_VASOS);
+			DestroiPeixe(peixes, NUM_PEIXES);
 
 			al_draw_bitmap(background, 0, 0, 0);
 			DesenhaPinguim(p1);
@@ -1332,6 +1323,14 @@ void ColideBotaoMouse(int mouse_x, int mouse_y, float x_comp, float y_comp, int&
 				mouse_y <= altura - altura / 21.21){
 			
 			GAME_STATE = STATE_INSTRUCAO;	
+		}
+		// Botao De Fechar Desenho no Canto
+		else if(mouse_x >= largura - largura / 26.57 &&
+				mouse_x <= largura - largura / 186 &&
+				mouse_y >= altura - altura / 1.0145 &&
+				mouse_y <= altura - altura / 1.07) {
+			
+			fim = true;
 		}
 		break;
 
