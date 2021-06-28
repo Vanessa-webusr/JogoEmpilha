@@ -5,6 +5,7 @@
 #include <allegro5/allegro_acodec.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
+#include <allegro5/allegro_primitives.h>
 #include <cstdlib>
 #include <ctime>
 #include <cstddef>
@@ -104,6 +105,8 @@ void DesenhaCrashedPeixe(Peixe peixes[], int s_tamanho);
 void Atualizarpilha(Pilha* pilha);
 void DesenhapilhaDef(Pilha* pilha);
 
+void ColideBotaoMouse(int mouse_x, int mouse_y,float x_comp, float y_comp, int& GAME_STATE);
+
 
 int main() {
 
@@ -165,7 +168,8 @@ int main() {
 		al_show_native_message_box(NULL, "AVISO!", "ERRO:", "O DISPLAY NÃO PODE SER CRIADO", NULL, ALLEGRO_MESSAGEBOX_ERROR);
 		return -1;
 	}
-	
+	al_set_window_title(display, "Grupo Jogo Clube Pinguim");
+
 	float red_x = res_x_comp / (float) width_t;
 	float red_y = res_y_comp /(float) height_t;
 	
@@ -183,6 +187,9 @@ int main() {
 	al_reserve_samples(QUANT_SONS);
 	al_init_font_addon();
 	al_init_ttf_addon();
+	al_install_mouse();
+	al_init_primitives_addon();
+	al_set_system_mouse_cursor(display, ALLEGRO_SYSTEM_MOUSE_CURSOR_DEFAULT);
 
 	//-------- CRIANDO A FONTE ------------
 	ALLEGRO_FONT* font60 = al_load_font("SuperMario256.ttf", 60, 0);
@@ -312,6 +319,7 @@ int main() {
 	al_register_event_source(fila_eventos, al_get_keyboard_event_source());
 	al_register_event_source(fila_eventos, al_get_display_event_source(display));
 	al_register_event_source(fila_eventos, al_get_timer_event_source(timer));
+	al_register_event_source(fila_eventos, al_get_mouse_event_source());
 
 	// ------- FUNÇÕES INICIAIS ---------
 	srand(time(NULL));
@@ -381,12 +389,15 @@ int main() {
 				teclas[M] = false;
 				break;
 			case ALLEGRO_KEY_I:
-			    teclas[I] = false;
-			    break;
+				teclas[I] = false;
+				break;
 			case ALLEGRO_KEY_N:
-			    teclas[N] = false;
+				teclas[N] = false;
 			}
 
+		}
+		else if (ev.type == ALLEGRO_EVENT_MOUSE_BUTTON_UP) {
+			ColideBotaoMouse(ev.mouse.x, ev.mouse.y,res_x_comp,res_y_comp, gamestate);
 		}
 		if (teclas[M]) {
 			Audio = !Audio;
@@ -397,6 +408,7 @@ int main() {
 		case STATE_MENU:
 
 			al_draw_bitmap(game_menu, 0, 0, 0);
+			al_draw_rectangle(al_get_bitmap_width(game_menu) - 560, al_get_bitmap_height(game_menu) - 296, al_get_bitmap_width(game_menu) - 100, al_get_bitmap_height(game_menu) - 191, al_map_rgb(255, 0, 255), 6.0);
 
 			al_flip_display();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -1172,6 +1184,53 @@ void DesenhapilhaDef(Pilha* pilha) {
 	}
 	if (pilha->Cheia() == true) {
 		vitoria = true;
+	}
+
+}
+
+void ColideBotaoMouse(int mouse_x, int mouse_y, float x_comp, float y_comp, int& GAME_STATE){
+	float altura = y_comp;//al_get_bitmap_height(game_menu);
+	float largura = x_comp;// al_get_bitmap_width(game_menu);
+	
+	switch (GAME_STATE)
+	{
+	case STATE_MENU:
+		// Botao Começar
+		if (mouse_x >= largura - largura / 3.72 &&
+			mouse_x <= largura - largura / 18.6 &&
+			mouse_y >= altura - altura / 3.30 &&
+			mouse_y <= altura - altura / 5.11){
+
+			GAME_STATE = STATE_GAME;
+		}
+		// Botao Instrução
+		else if(mouse_x >= largura - largura / 3.72 &&
+				mouse_x <= largura - largura / 18.6 &&
+				mouse_y >= altura - altura / 6.26 &&
+				mouse_y <= altura - altura / 21.21){
+			
+			GAME_STATE = STATE_INSTRUCAO;	
+		}
+		break;
+
+	case STATE_INSTRUCAO:
+		// Botao Voltar
+		if (mouse_x >= largura - largura / 1.07 &&
+			mouse_x <= largura - largura / 1.22 &&
+			mouse_y >= altura - altura / 1.03 &&
+			mouse_y <= altura - altura / 1.17) {
+
+			GAME_STATE = STATE_MENU;
+		}
+		// Botao Play
+		else if(mouse_x >= largura - largura / 5.17 &&
+				mouse_x <= largura - largura / 37.2 &&
+				mouse_y >= altura - altura / 6.67 &&
+				mouse_y <= altura - altura / 31.48) {
+
+				GAME_STATE = STATE_GAME;
+		}
+		break;
 	}
 
 }
