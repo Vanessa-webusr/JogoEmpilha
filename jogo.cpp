@@ -13,7 +13,7 @@
 #include "PilhaInter.h"
 #include "Som.h"
 
-enum TECLAS { DIREITA, ESQUERDA, ESPACO, M, ESC };
+enum TECLAS { DIREITA, ESQUERDA, ESPACO, M, N, I, ESC };
 
 // ---------- VARIÁVEIS GLOBAIS ---------
 const int width_t = 1860;
@@ -33,7 +33,7 @@ const int STATE_GAME = 1;
 const int STATE_OVER = 2;
 const int STATE_NEXT = 3;
 const int STATE_WIN  = 4;
-
+const int STATE_INSTRUCAO = 5;
 
 
 float s_x = 17, s_y = 27, s_w = 234, s_h = 279;
@@ -54,17 +54,18 @@ ALLEGRO_BITMAP* game_menu = NULL;
 ALLEGRO_BITMAP* ganhou_jogo = NULL;
 ALLEGRO_BITMAP* vaso = NULL;
 ALLEGRO_BITMAP* peixe = NULL;
+ALLEGRO_BITMAP* instrucao = NULL;
 
 #define BACKGROUND_FILE "fundo_neve_caminhao.png"
 #define PLAYER_FILE "pinguim_sprite_v2.png"
 #define CAFE_FILE "coffee_sprite_v1.png"
 #define BIGORNA_FILE "anvil_v1.png"
 #define FIM_DE_JOGO_FILE "game_over_v5.png"
-#define GAME_MENU_FILE "game_menu_v3.png"
+#define GAME_MENU_FILE "game_menu_v6.png"
 #define GANHA_JOGO_FILE "vitoria.png"
 #define VASO_FILE "vaso_v2.png"
 #define PEIXE_FILE "peixe.png"
-
+#define INSTRUCAO_FILE "instrucoes_v2.png"
 
 // --------- PROTÓTIPOS --------------------
 void InitPinguim(Pinguim& p1);
@@ -117,7 +118,7 @@ int main() {
 	bool fim = false;
 	bool desenha = true;
 
-	bool teclas[] = { false, false, false,false,false };
+	bool teclas[] = { false, false, false,false,false, false, false };
 
 	// -------- VARIAVEIS PARA CONTROLE DO SOM ----------
 	bool ColideSaca = false;
@@ -293,6 +294,15 @@ int main() {
 		al_show_native_message_box(NULL, "AVISO!", "ERRO:", "O GAME MENU NÃO PODE SER CRIADO", NULL, ALLEGRO_MESSAGEBOX_ERROR);
 		return -1;
 	}
+	
+	// ---------- INICIALIZAÇÃO DAS INSTRUÇÕES -------
+	
+	instrucao = al_load_bitmap(INSTRUCAO_FILE);
+	
+	if(!instrucao)
+	{
+	    al_show_native_message_box(NULL, "AVISO!", "ERRO:", "AS INSTRUCOES NÃO PODEM SER CRIADAS", NULL, ALLEGRO_MESSAGEBOX_ERROR);
+	}
 
 	// ------- CRIAÇÃO DA FILA E DEMAIS DISPOSITIVOS -------
 	fila_eventos = al_create_event_queue();
@@ -346,6 +356,11 @@ int main() {
 			case ALLEGRO_KEY_M:
 				teclas[M] = true;
 				break;
+			case ALLEGRO_KEY_I:
+			    teclas[I] = true;
+			    break;
+			case ALLEGRO_KEY_N:
+			    teclas[N] = true;
 			}
 
 		}
@@ -365,6 +380,11 @@ int main() {
 			case ALLEGRO_KEY_M:
 				teclas[M] = false;
 				break;
+			case ALLEGRO_KEY_I:
+			    teclas[I] = false;
+			    break;
+			case ALLEGRO_KEY_N:
+			    teclas[N] = false;
 			}
 
 		}
@@ -392,6 +412,12 @@ int main() {
 				gamestate = STATE_GAME;
 				teclas[ESPACO] = false;
 			}
+			
+			if (teclas[I]) {
+				gamestate = STATE_INSTRUCAO;
+				teclas[I] = false;
+			}
+			
 			break;
 		case STATE_GAME:
 			Som_Menu.Stop();
@@ -508,6 +534,7 @@ int main() {
 				al_clear_to_color(al_map_rgb(0, 0, 0));
 			}
 			break;
+			
 		case STATE_OVER:
 			Som_Fase1.Stop();
 			if (Toca_GameOver && Audio) {
@@ -535,7 +562,7 @@ int main() {
 			DesenhaPinguim(p1);
 			DesenhapilhaDef(pilhaDef);
 			al_draw_bitmap(fim_de_jogo, 720, 59, 0);
-
+        al_draw_textf(font60, al_map_rgb(0, 0, 0), 300, 700, 0, "Pressione espaco para continuar");
 			al_flip_display();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
 
@@ -603,6 +630,34 @@ int main() {
 			al_flip_display();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
 			break;
+			
+		case STATE_INSTRUCAO:
+		    
+		    al_draw_bitmap(instrucao, 0, 0, 0);
+
+			al_flip_display();
+			al_clear_to_color(al_map_rgb(0, 0, 0));
+			
+			if (Audio) {
+				Som_Menu.setLoop(true);
+				Som_Menu.setVolume(1);
+				Som_Menu.Play();
+			}
+			else
+				Som_Menu.Stop();
+
+			if (teclas[N]) {
+				gamestate = STATE_MENU;
+				teclas[N] = false;
+			}
+			
+			if (teclas[ESPACO]) {
+				gamestate = STATE_GAME;
+				teclas[ESPACO] = false;
+			}
+			
+		    break;
+		
 		}
 	}
 
