@@ -26,6 +26,7 @@ const int NUM_PEIXES = 1;
 const int QUANT_SONS = 10;
 const int OBJETIVO_FASE_1 = 7;
 const int LIMITE_PINGUIM = 6;	// Capacidade máxima =  n-1 =5
+const int QUANT_VIDAS = 3;
 
 // ---------- GAME STATES --------
 const int STATE_MENU = 0;
@@ -38,6 +39,9 @@ const int STATE_WIN  = 4;
 
 float s_x = 17, s_y = 27, s_w = 234, s_h = 279;
 
+// ------------ VARIAVEIS DE CONTROLE DE VIDA -----------
+int vidas = QUANT_VIDAS;
+bool reset = true;
 bool morte = false;
 bool vitoria = false;
 
@@ -112,6 +116,7 @@ int main() {
 	ALLEGRO_TIMER* timer = NULL;
 
 	int fase = 1;
+	int x;
 	// ------- VARIÁVEL FIM DO PROGRAMA PRINCIPAL ------
 	int gamestate = STATE_MENU;
 	bool fim = false;
@@ -306,17 +311,25 @@ int main() {
 	// ------- FUNÇÕES INICIAIS ---------
 	srand(time(NULL));
 
-	InitPinguim(p1);
-	InitSaca(sacas, NUM_SACAS);
-	InitBigorna(bigornas, NUM_BIGORNAS);
-	InitVaso(vasos, NUM_VASOS);
-	InitPeixe(peixes, NUM_PEIXES);
 
 	// ------- LOOP PRINCIPAL -------
 	al_start_timer(timer);
 
 	while (!fim)
 	{
+		if ((reset) && (vidas >= 0)) {
+			InitPinguim(p1);
+			InitSaca(sacas, NUM_SACAS);
+			InitBigorna(bigornas, NUM_BIGORNAS);
+			InitVaso(vasos, NUM_VASOS);
+			InitPeixe(peixes, NUM_PEIXES);
+			while (!pilhaInter->Vazia() && !pilhaDef->Vazia()) {
+				pilhaInter->Desempilha(x, ok);
+				pilhaDef->Desempilha(x, ok);
+			}
+			reset = false;
+		}
+
 		ALLEGRO_EVENT ev;
 		al_wait_for_event(fila_eventos, &ev);
 
@@ -389,6 +402,7 @@ int main() {
 				Som_Menu.Stop();
 
 			if (teclas[ESPACO]) {
+				vidas = QUANT_VIDAS;
 				gamestate = STATE_GAME;
 				teclas[ESPACO] = false;
 			}
@@ -402,9 +416,14 @@ int main() {
 			else
 				Som_Fase1.Stop();
 
-			if (morte) {
+			if (morte == true && vidas <=0) {
 				gamestate = STATE_OVER;
 				Toca_GameOver = true;
+			}
+			else if (morte == true && vidas > 0) {
+				vidas--;
+				reset = true;
+				morte = false;
 			}
 			else if (vitoria) {
 				gamestate = STATE_NEXT;
@@ -460,15 +479,12 @@ int main() {
 				AtualizarBigorna(bigornas, NUM_BIGORNAS);
 				ColideBigornaPinguim(bigornas, NUM_BIGORNAS, p1, pilhaInter);
 
-				if (fase == 2) {
+				if (fase >= 2) {
 					LiberaVaso(vasos, NUM_VASOS);
 					AtualizarVaso(vasos, NUM_VASOS);
 					ColideVasoPinguim(vasos, NUM_VASOS, p1, pilhaInter);
 				}
-				if (fase == 3) {
-					LiberaVaso(vasos, NUM_VASOS);
-					AtualizarVaso(vasos, NUM_VASOS);
-					ColideVasoPinguim(vasos, NUM_VASOS, p1, pilhaInter);
+				if (fase >= 3) {
 					LiberaPeixe(peixes, NUM_PEIXES);
 					AtualizarPeixe(peixes, NUM_PEIXES);
 					ColidePeixePinguim(peixes, NUM_PEIXES, p1, pilhaInter);
@@ -485,6 +501,7 @@ int main() {
 
 				al_draw_bitmap(background, 0, 0, 0);
 				al_draw_textf(font60, al_map_rgb(0, 0, 0), 100, 50, 0, "Pontos: %d", pontos);
+				al_draw_textf(font60, al_map_rgb(255, 0, 0), res_x_comp - res_x_comp/5, 50,0, "Vidas: %d", vidas);
 				DesenhapilhaDef(pilhaDef);
 				DesenhaPinguim(p1);
 				DesenhaSaca(sacas, NUM_SACAS);
@@ -492,15 +509,13 @@ int main() {
 				DesenhaBigorna(bigornas, NUM_BIGORNAS);
 				DesenhaCrashedBigorna(bigornas, NUM_BIGORNAS);
 
-				if (fase == 2)
+				if (fase >= 2)
 				{
 					DesenhaVaso(vasos, NUM_VASOS);
 					DesenhaCrashedVaso(vasos, NUM_VASOS);
 				}
-				if (fase == 3)
+				if (fase >= 3)
 				{
-					DesenhaVaso(vasos, NUM_VASOS);
-					DesenhaCrashedVaso(vasos, NUM_VASOS);
 					DesenhaPeixe(peixes, NUM_PEIXES);
 					DesenhaCrashedPeixe(peixes, NUM_PEIXES);
 				}
@@ -815,10 +830,12 @@ void ColideBigornaPinguim(Bigorna bigornas[], int s_tamanho, Pinguim p1, Pilha* 
 					(bigornas[i].y - bigornas[i].borda_y / 2) < (p1.y + p1.borda_y / 2))
 				{
 					bigornas[i].colide = true;
-					s_x = 742;
-					s_y = 333;
-					s_w = 241;
-					s_h = 279;
+					if (vidas < 0) {
+						s_x = 742;
+						s_y = 333;
+						s_w = 241;
+						s_h = 279;
+					}
 					morte = true;
 					bigornas[i].ativo = false;
 
@@ -902,10 +919,12 @@ void ColideVasoPinguim(Vaso vasos[], int s_tamanho, Pinguim p1, Pilha* pilha) {
 					(vasos[i].y - vasos[i].borda_y / 2) < (p1.y + p1.borda_y / 2))
 				{
 					vasos[i].colide = true;
-					s_x = 249;
-					s_y = 630;
-					s_w = 239;
-					s_h = 329;
+					if (vidas < 0) {
+						s_x = 249;
+						s_y = 630;
+						s_w = 239;
+						s_h = 329;
+					}
 					morte = true;
 					vasos[i].ativo = false;
 
@@ -988,10 +1007,12 @@ void ColidePeixePinguim(Peixe peixes[], int s_tamanho, Pinguim p1, Pilha* pilha)
 					(peixes[i].y - peixes[i].borda_y / 2) < (p1.y + p1.borda_y / 2))
 				{
 					peixes[i].colide = true;
-					s_x = 3;
-					s_y = 630;
-					s_w = 250;
-					s_h = 329;
+					if (vidas < 0) {
+						s_x = 3;
+						s_y = 630;
+						s_w = 250;
+						s_h = 329;
+					}
 					morte = true;
 					peixes[i].ativo = false;
 
@@ -1068,10 +1089,18 @@ void Atualizarpilha(Pilha* pilha) {
 		s_h = 304;
 		break;
 	case 6:
-		s_x = 493;
-		s_y = 332;
-		s_w = 239;
-		s_h = 304;
+		if (vidas < 0) {
+			s_x = 493;
+			s_y = 332;
+			s_w = 239;
+			s_h = 304;
+		}
+		else {
+			s_x = 17;
+			s_y = 27;
+			s_w = 234;
+			s_h = 279;
+		}
 		morte = true;
 		break;
 	}

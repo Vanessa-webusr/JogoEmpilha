@@ -1,7 +1,2 @@
 ﻿  jogo.cpp
-  Pilha.cpp
-  PilhaInter.cpp
-  Gerando Código...
-jogo.obj : error LNK2019: símbolo externo não resolvido, __imp__al_show_native_message_box, referenciado na função _main
-jogo.obj : error LNK2019: símbolo externo não resolvido, __imp__al_init_image_addon, referenciado na função _main
-C:\Users\Usuario\source\repos\Vanessa-webusr\JogoEmpilha\Debug\JogoPenguim.exe : fatal error LNK1120: 2 externo não resolvidos
+  JogoPenguim.vcxproj -> C:\Users\Usuario\Source\Repos\Vanessa-webusr\JogoEmpilha\Debug\JogoPenguim.exe
